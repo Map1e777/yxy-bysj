@@ -32,5 +32,11 @@ DB_PASSWORD="${DB_PASSWORD:-}"
 DB_NAME="${DB_NAME:-campus_shuttle}"
 
 echo "正在初始化数据库: ${DB_NAME}"
-mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" < "$SQL_FILE"
+mysql \
+  --default-character-set=utf8mb4 \
+  -h"$DB_HOST" \
+  -P"$DB_PORT" \
+  -u"$DB_USER" \
+  -p"$DB_PASSWORD" \
+  < "$SQL_FILE"
 echo "数据库初始化完成。"
