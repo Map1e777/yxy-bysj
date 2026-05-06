@@ -5,10 +5,13 @@ import {
   getScheduleLogs,
   getScheduleOptimizationReport,
   getSchedules,
+  getScheduleVersions,
   patchSchedule,
   patchScheduleBatchStatus,
   postGeneratedSchedules,
-  postSchedule
+  postSchedule,
+  postScheduleVersion,
+  postScheduleVersionRollback
 } from '../controllers/scheduleController.js';
 import {
   getDispatchEvents,
@@ -19,6 +22,7 @@ import {
 import {
   getDatasetExport,
   getAnalytics,
+  getDrivers,
   getFavorites,
   getFeedback,
   getImportJobs,
@@ -31,6 +35,9 @@ import {
   getSystemConfigs,
   getUsers,
   getVehicles,
+  patchDriver,
+  patchRouteStopPosition,
+  postDriver,
   postImportJob,
   postFavorite,
   postFeedback,
@@ -69,6 +76,7 @@ router.post('/dispatch-events/:id/rollback', requireAuth, requireRoles('ADMIN', 
 router.get('/routes', requireAuth, getRoutes);
 router.post('/routes', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postRoute);
 router.post('/route-stops', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postRouteStop);
+router.patch('/route-stops/position', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), patchRouteStopPosition);
 router.get('/vehicles', requireAuth, getVehicles);
 router.post('/vehicles', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postVehicle);
 router.get('/notifications', requireAuth, getNotifications);
@@ -91,5 +99,13 @@ router.get('/vehicles/realtime', requireAuth, getRealtimeVehicleFeed);
 router.get('/analytics', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getAnalytics);
 router.get('/system/configs', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getSystemConfigs);
 router.put('/system/configs', requireAuth, requireRoles('ADMIN'), putSystemConfigs);
+
+router.get('/schedule-versions', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getScheduleVersions);
+router.post('/schedule-versions', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postScheduleVersion);
+router.post('/schedule-versions/:id/rollback', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postScheduleVersionRollback);
+
+router.get('/drivers', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getDrivers);
+router.post('/drivers', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postDriver);
+router.patch('/drivers/:id', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), patchDriver);
 
 export default router;

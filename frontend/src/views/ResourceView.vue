@@ -53,6 +53,18 @@
             </el-collapse-item>
           </el-collapse>
         </el-card>
+
+        <el-card shadow="never" class="panel-card compact-top">
+          <template #header>
+            <div class="panel-head">
+              <div>
+                <h3>站点地图定位</h3>
+                <p>在地图上拖动标记或点击定位，将真实坐标写入数据库</p>
+              </div>
+            </div>
+          </template>
+          <StopMapEditor :routes="routes" />
+        </el-card>
       </el-tab-pane>
 
       <el-tab-pane label="车辆与通知">
@@ -169,6 +181,58 @@
         </div>
       </el-tab-pane>
 
+      <el-tab-pane label="驾驶员管理">
+        <div class="dashboard-grid">
+          <el-card shadow="never" class="panel-card">
+            <template #header><div class="panel-head"><div><h3>新增驾驶员</h3><p>维护驾驶员基本信息与每日最大工时约束</p></div></div></template>
+            <el-form label-position="top">
+              <div class="form-2col">
+                <el-form-item label="姓名"><el-input v-model="driverForm.name" /></el-form-item>
+                <el-form-item label="手机号"><el-input v-model="driverForm.phone" /></el-form-item>
+                <el-form-item label="驾照号"><el-input v-model="driverForm.licenseNumber" /></el-form-item>
+                <el-form-item label="每日最大工时(h)"><el-input-number v-model="driverForm.maxDailyHours" :min="1" :max="12" :step="0.5" /></el-form-item>
+                <el-form-item label="状态"><el-select v-model="driverForm.status"><el-option label="在职" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select></el-form-item>
+              </div>
+              <el-button type="primary" @click="handleCreateDriver">新增驾驶员</el-button>
+            </el-form>
+          </el-card>
+
+          <el-card shadow="never" class="panel-card">
+            <template #header><div class="panel-head"><div><h3>编辑驾驶员</h3><p>修改状态或工时上限</p></div></div></template>
+            <el-form label-position="top">
+              <el-form-item label="选择驾驶员">
+                <el-select v-model="editDriverId" placeholder="请选择">
+                  <el-option v-for="d in drivers" :key="d.id" :label="d.name" :value="d.id" />
+                </el-select>
+              </el-form-item>
+              <div class="form-2col">
+                <el-form-item label="状态"><el-select v-model="editDriverForm.status"><el-option label="在职" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select></el-form-item>
+                <el-form-item label="每日最大工时(h)"><el-input-number v-model="editDriverForm.maxDailyHours" :min="1" :max="12" :step="0.5" /></el-form-item>
+              </div>
+              <el-button @click="handleUpdateDriver">保存修改</el-button>
+            </el-form>
+          </el-card>
+        </div>
+
+        <el-card shadow="never" class="panel-card compact-top">
+          <template #header><div class="panel-head"><div><h3>驾驶员列表</h3></div></div></template>
+          <el-table :data="drivers" stripe>
+            <el-table-column prop="name" label="姓名" width="110" />
+            <el-table-column prop="phone" label="手机号" min-width="140" />
+            <el-table-column prop="license_number" label="驾照号" min-width="140" />
+            <el-table-column prop="max_daily_hours" label="最大工时(h)" width="120" />
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">{{ row.status === 'ACTIVE' ? '在职' : '停用' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="创建时间" min-width="180">
+              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
       <el-tab-pane v-if="isAdmin" label="用户与导入导出">
         <div class="dashboard-grid">
           <el-card shadow="never" class="panel-card">
@@ -261,7 +325,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import StopMapEditor from '../components/StopMapEditor.vue';
 import {
+  createDriver,
   createImportJob,
   createNotification,
   createPassengerFlow,
@@ -272,6 +338,7 @@ import {
   createVehicle,
   fetchConfigs,
   fetchDatasetExport,
+  fetchDrivers,
   fetchFeedback,
   fetchImportJobs,
   fetchNotifications,
@@ -280,7 +347,8 @@ import {
   fetchRoutes,
   fetchUsers,
   fetchVehicles,
-  updateConfigs
+  updateConfigs,
+  updateDriver
 } from '../api/dashboard';
 import { useAuthStore } from '../stores/auth';
 
@@ -288,6 +356,7 @@ const auth = useAuthStore();
 const isAdmin = computed(() => auth.state.user?.role === 'ADMIN');
 
 const routes = ref([]);
+const drivers = ref([]);
 const vehicles = ref([]);
 const notifications = ref([]);
 const configs = ref([]);
@@ -297,6 +366,16 @@ const passengerFlows = ref([]);
 const users = ref([]);
 const importJobs = ref([]);
 const exportPreview = ref('');
+
+const driverForm = reactive({
+  name: '',
+  phone: '',
+  licenseNumber: '',
+  maxDailyHours: 8.0,
+  status: 'ACTIVE'
+});
+const editDriverId = ref(null);
+const editDriverForm = reactive({ status: 'ACTIVE', maxDailyHours: 8.0 });
 
 const routeForm = reactive({
   routeName: '',
@@ -373,6 +452,7 @@ function toCsv(rows) {
 
 async function loadData() {
   routes.value = await fetchRoutes();
+  drivers.value = await fetchDrivers();
   vehicles.value = await fetchVehicles();
   notifications.value = await fetchNotifications();
   roadConditions.value = await fetchRoadConditions();
@@ -490,6 +570,20 @@ async function handleExport(dataset) {
   const rows = await fetchDatasetExport(dataset);
   exportPreview.value = toCsv(rows);
   ElMessage.success('导出数据已生成到预览框');
+}
+
+async function handleCreateDriver() {
+  await createDriver({ ...driverForm });
+  Object.assign(driverForm, { name: '', phone: '', licenseNumber: '', maxDailyHours: 8.0, status: 'ACTIVE' });
+  drivers.value = await fetchDrivers();
+  ElMessage.success('驾驶员已新增');
+}
+
+async function handleUpdateDriver() {
+  if (!editDriverId.value) { ElMessage.warning('请先选择驾驶员'); return; }
+  await updateDriver(editDriverId.value, { ...editDriverForm });
+  drivers.value = await fetchDrivers();
+  ElMessage.success('驾驶员信息已更新');
 }
 
 async function handleSaveConfigs() {

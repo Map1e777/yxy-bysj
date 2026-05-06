@@ -1,4 +1,5 @@
 import {
+  createDriver,
   createFavorite,
   createFeedback,
   createImportJob,
@@ -14,6 +15,7 @@ import {
   getRealtimeVehicles,
   getStudentOverview,
   listConfigs,
+  listDrivers,
   listFavorites,
   listFeedback,
   listImportJobs,
@@ -23,7 +25,9 @@ import {
   listRoutesWithStops,
   listUsers,
   listVehicles,
-  updateConfigs
+  updateConfigs,
+  updateDriver,
+  updateStopPosition
 } from '../services/portalService.js';
 
 export async function getRoutes(req, res, next) {
@@ -48,6 +52,16 @@ export async function postRouteStop(req, res, next) {
   try {
     const data = await createRouteStop(req.body);
     res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function patchRouteStopPosition(req, res, next) {
+  try {
+    const { stopName, lat, lng } = req.body;
+    await updateStopPosition(stopName, lat, lng);
+    res.json({ success: true, data: null });
   } catch (error) {
     next(error);
   }
@@ -251,6 +265,33 @@ export async function postImportJob(req, res, next) {
 export async function getDatasetExport(req, res, next) {
   try {
     const data = await exportDataset(req.params.dataset);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getDrivers(req, res, next) {
+  try {
+    const data = await listDrivers();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function postDriver(req, res, next) {
+  try {
+    const data = await createDriver(req.body);
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function patchDriver(req, res, next) {
+  try {
+    const data = await updateDriver(req.params.id, req.body);
     res.json({ success: true, data });
   } catch (error) {
     next(error);

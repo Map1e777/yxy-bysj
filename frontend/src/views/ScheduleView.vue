@@ -10,6 +10,7 @@
         <el-button @click="handleGenerate">智能生成今日排班</el-button>
         <el-button type="success" @click="handleBatchStatus('PUBLISHED')">批量发布</el-button>
         <el-button type="warning" @click="handleBatchStatus('CANCELLED')">批量取消</el-button>
+        <el-button @click="handleSaveVersion">存档当前版本</el-button>
         <el-button type="primary" @click="handleCreate">新增班次</el-button>
       </div>
     </div>
@@ -200,6 +201,35 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <el-card shadow="never" class="panel-card">
+      <template #header>
+        <div class="panel-head">
+          <div>
+            <h3>排班版本历史</h3>
+            <p>每次智能生成或批量发布时自动存档，支持回滚到任意历史版本</p>
+          </div>
+        </div>
+      </template>
+      <el-table :data="versions" stripe>
+        <el-table-column prop="version_label" label="版本名称" min-width="220" />
+        <el-table-column prop="triggered_by" label="触发方式" width="120" />
+        <el-table-column prop="operator_name" label="操作人" width="110" />
+        <el-table-column prop="schedule_count" label="班次数" width="90" />
+        <el-table-column label="存档时间" min-width="180">
+          <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <el-popconfirm title="回滚将覆盖当前所有班次，确认继续？" @confirm="handleRollback(row.id)">
+              <template #reference>
+                <el-button link type="warning">回滚</el-button>
+              </template>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </section>
 </template>
 
@@ -213,12 +243,16 @@ import {
   fetchScheduleLogs,
   fetchScheduleOptimizationReport,
   fetchSchedules,
+  fetchScheduleVersions,
   generateSchedules,
+  rollbackScheduleVersion,
+  saveScheduleVersion,
   updateSchedule
 } from '../api/dashboard';
 
 const schedules = ref([]);
 const logs = ref([]);
+const versions = ref([]);
 const selectedIds = ref([]);
 const editingId = ref(null);
 const optimizationReport = reactive({
@@ -331,7 +365,20 @@ function applyReport(nextReport) {
 async function loadData() {
   schedules.value = await fetchSchedules();
   logs.value = await fetchScheduleLogs();
+  versions.value = await fetchScheduleVersions();
   applyReport(await fetchScheduleOptimizationReport());
+}
+
+async function handleSaveVersion() {
+  await saveScheduleVersion({ label: `手动存档-${new Date().toLocaleString('zh-CN', { hour12: false }).slice(0, 16)}`, operatorName: 'admin01' });
+  versions.value = await fetchScheduleVersions();
+  ElMessage.success('当前排班已存档');
+}
+
+async function handleRollback(versionId) {
+  await rollbackScheduleVersion(versionId, { operatorName: 'admin01' });
+  await loadData();
+  ElMessage.success('已回滚到选定版本');
 }
 
 async function handleGenerate() {

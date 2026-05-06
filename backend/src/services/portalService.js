@@ -10,7 +10,9 @@ function mergeRoutesWithStops(routes, stops) {
       .sort((a, b) => a.stop_order - b.stop_order)
       .map((stop) => ({
         ...stop,
-        position: toCoordinate(stop.stop_name)
+        position: (stop.lat != null && stop.lng != null)
+          ? { lat: Number(stop.lat), lng: Number(stop.lng) }
+          : toCoordinate(stop.stop_name)
       }))
   }));
 }
@@ -33,15 +35,35 @@ function parseCsv(csvText) {
   });
 }
 
+const STOP_COORDINATES = {
+  '宿舍区A': { lat: 29.53512, lng: 106.59928 },
+  '宿舍区A西门': { lat: 29.53534, lng: 106.59886 },
+  '第一教学楼': { lat: 29.53708, lng: 106.60076 },
+  '教学楼B': { lat: 29.53762, lng: 106.60146 },
+  '图书馆': { lat: 29.53854, lng: 106.60258 },
+  '图书馆西门': { lat: 29.53846, lng: 106.60204 },
+  '中心广场': { lat: 29.53754, lng: 106.60128 },
+  '食堂南门': { lat: 29.53608, lng: 106.60178 },
+  '实验楼': { lat: 29.53692, lng: 106.60356 },
+  '实验楼北门': { lat: 29.53718, lng: 106.60394 },
+  '体育馆': { lat: 29.53642, lng: 106.60296 },
+  '行政楼': { lat: 29.53888, lng: 106.60372 }
+};
+
 function hashNumber(text) {
   return Array.from(String(text || '')).reduce((sum, char) => sum + char.charCodeAt(0), 0);
 }
 
 function toCoordinate(stopName) {
-  const seed = hashNumber(stopName);
+  const normalized = String(stopName || '').trim();
+  if (STOP_COORDINATES[normalized]) {
+    return STOP_COORDINATES[normalized];
+  }
+
+  const seed = hashNumber(normalized);
   return {
-    lat: Number((29.5600 + (seed % 40) * 0.00045).toFixed(6)),
-    lng: Number((106.5700 + (seed % 35) * 0.00042).toFixed(6))
+    lat: Number((29.5354 + (seed % 18) * 0.0002).toFixed(6)),
+    lng: Number((106.5994 + (seed % 20) * 0.00018).toFixed(6))
   };
 }
 
@@ -68,7 +90,7 @@ export async function listRoutesWithStops() {
   );
 
   const stops = await query(
-    `SELECT id, route_id, stop_name, stop_order
+    `SELECT id, route_id, stop_name, stop_order, lat, lng
     FROM route_stops
     ORDER BY route_id ASC, stop_order ASC`
   );
@@ -111,6 +133,13 @@ export async function createRouteStop(payload) {
     id: result.insertId,
     ...payload
   };
+}
+
+export async function updateStopPosition(stopName, lat, lng) {
+  await query(
+    `UPDATE route_stops SET lat = ?, lng = ? WHERE stop_name = ?`,
+    [lat, lng, stopName]
+  );
 }
 
 export async function listVehicles() {
@@ -261,6 +290,40 @@ export async function createPassengerFlow(payload) {
   );
   await refreshRouteMetrics();
   return { id: result.insertId, ...payload };
+}
+
+export async function listDrivers() {
+  return query(
+    `SELECT id, name, phone, license_number, max_daily_hours, status, created_at
+    FROM drivers
+    ORDER BY id ASC`
+  );
+}
+
+export async function createDriver(payload) {
+  const { name, phone = '', licenseNumber = '', maxDailyHours = 8.0, status = 'ACTIVE' } = payload;
+  const result = await query(
+    `INSERT INTO drivers (name, phone, license_number, max_daily_hours, status) VALUES (?, ?, ?, ?, ?)`,
+    [name, phone, licenseNumber, maxDailyHours, status]
+  );
+  return { id: result.insertId, ...payload };
+}
+
+export async function updateDriver(driverId, payload) {
+  const [current] = await query(`SELECT * FROM drivers WHERE id = ?`, [driverId]);
+  if (!current) throw new Error('Driver not found');
+  const next = {
+    name:          payload.name          ?? current.name,
+    phone:         payload.phone         ?? current.phone,
+    licenseNumber: payload.licenseNumber ?? current.license_number,
+    maxDailyHours: payload.maxDailyHours ?? current.max_daily_hours,
+    status:        payload.status        ?? current.status
+  };
+  await query(
+    `UPDATE drivers SET name=?, phone=?, license_number=?, max_daily_hours=?, status=? WHERE id=?`,
+    [next.name, next.phone, next.licenseNumber, next.maxDailyHours, next.status, driverId]
+  );
+  return { id: driverId, ...next };
 }
 
 export async function listUsers() {
@@ -436,6 +499,7 @@ export async function getRealtimeVehicles(user) {
   return vehicles.map((vehicle, index) => {
     const route = routeMap.get(vehicle.route_name);
     const stops = route?.stops || [];
+    const stopPositionMap = new Map(stops.map((s) => [s.stop_name, s.position]));
     const road = roadConditions.find((item) => item.affected_route === vehicle.route_name);
     const event = recentEvents.find((item) => item.impact_route === vehicle.route_name && item.status !== 'RESOLVED');
     const cycleSize = Math.max(stops.length, 2);
@@ -475,8 +539,8 @@ export async function getRealtimeVehicles(user) {
       highlight,
       isSimulated: true,
       lastReportedAt: new Date().toISOString(),
-      position: toCoordinate(currentStop),
-      nextPosition: toCoordinate(nextStop)
+      position: stopPositionMap.get(currentStop) || toCoordinate(currentStop),
+      nextPosition: stopPositionMap.get(nextStop) || toCoordinate(nextStop)
     };
   }).filter((item) => user.role !== 'STUDENT' || Boolean(item.routeName));
 }
@@ -513,12 +577,26 @@ export async function getAnalyticsData() {
     GROUP BY status`
   );
 
+  // 空驶率：expected_occupancy < 35 的班次视为空驶/轻载
+  const emptyRunStats = await query(
+    `SELECT
+      route_name,
+      COUNT(*) AS total_services,
+      SUM(CASE WHEN expected_occupancy < 35 THEN 1 ELSE 0 END) AS empty_count,
+      ROUND(100.0 * SUM(CASE WHEN expected_occupancy < 35 THEN 1 ELSE 0 END) / COUNT(*), 1) AS empty_run_rate
+    FROM schedules
+    WHERE status != 'CANCELLED'
+    GROUP BY route_name
+    ORDER BY empty_run_rate DESC`
+  );
+
   return {
     routeMetrics,
     occupancy,
     eventsBySeverity,
     passengerFlowTrend,
-    roadStatusSummary
+    roadStatusSummary,
+    emptyRunStats
   };
 }
 

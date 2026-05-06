@@ -2,6 +2,7 @@ CREATE DATABASE IF NOT EXISTS campus_shuttle DEFAULT CHARACTER SET utf8mb4 COLLA
 USE campus_shuttle;
 
 DROP TABLE IF EXISTS schedule_operation_logs;
+DROP TABLE IF EXISTS schedule_versions;
 DROP TABLE IF EXISTS data_import_jobs;
 DROP TABLE IF EXISTS passenger_flows;
 DROP TABLE IF EXISTS road_conditions;
@@ -11,6 +12,7 @@ DROP TABLE IF EXISTS route_stops;
 DROP TABLE IF EXISTS routes;
 DROP TABLE IF EXISTS route_metrics;
 DROP TABLE IF EXISTS vehicles;
+DROP TABLE IF EXISTS drivers;
 DROP TABLE IF EXISTS dispatch_events;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS feedback;
@@ -31,7 +33,9 @@ CREATE TABLE route_stops (
   id INT PRIMARY KEY AUTO_INCREMENT,
   route_id INT NOT NULL,
   stop_name VARCHAR(100) NOT NULL,
-  stop_order INT NOT NULL
+  stop_order INT NOT NULL,
+  lat DECIMAL(10, 7) DEFAULT NULL,
+  lng DECIMAL(10, 7) DEFAULT NULL
 );
 
 CREATE TABLE schedules (
@@ -157,6 +161,26 @@ CREATE TABLE system_users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE drivers (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50) NOT NULL,
+  phone VARCHAR(20) NOT NULL DEFAULT '',
+  license_number VARCHAR(50) NOT NULL DEFAULT '',
+  max_daily_hours DECIMAL(4,1) NOT NULL DEFAULT 8.0,
+  status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE schedule_versions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  version_label VARCHAR(100) NOT NULL,
+  triggered_by ENUM('GENERATE', 'PUBLISH', 'MANUAL') NOT NULL DEFAULT 'MANUAL',
+  operator_name VARCHAR(50) NOT NULL DEFAULT 'system',
+  schedule_snapshot LONGTEXT NOT NULL,
+  schedule_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE data_import_jobs (
   id INT PRIMARY KEY AUTO_INCREMENT,
   import_type VARCHAR(50) NOT NULL,
@@ -257,3 +281,10 @@ INSERT INTO system_users (username, password_hash, role, phone, status) VALUES
 INSERT INTO data_import_jobs (import_type, source_name, total_rows, status) VALUES
 ('PASSENGER_FLOW', 'mock-passenger-flow.csv', 8, 'DONE'),
 ('ROAD_CONDITION', 'manual-road-input', 3, 'DONE');
+
+INSERT INTO drivers (name, phone, license_number, max_daily_hours, status) VALUES
+('李师傅', '13900001111', 'CQ2022001', 8.0, 'ACTIVE'),
+('陈师傅', '13900002222', 'CQ2022002', 8.0, 'ACTIVE'),
+('王师傅', '13900003333', 'CQ2022003', 8.0, 'ACTIVE'),
+('赵师傅', '13900004444', 'CQ2022004', 7.5, 'ACTIVE'),
+('孙师傅', '13900005555', 'CQ2022005', 8.0, 'ACTIVE');

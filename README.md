@@ -54,6 +54,14 @@ SOURCE /Users/tal/Documents/mine/yxy/sql/init.sql;
 
 如果你之前已经初始化过旧版本数据库，建议重新执行一次 [sql/init.sql](/Users/tal/Documents/mine/yxy/sql/init.sql)，因为当前版本新增了线路、站点、通知、反馈、收藏和系统参数相关表。
 
+## 初始化测试账号
+
+执行 [sql/init.sql](/Users/tal/Documents/mine/yxy/sql/init.sql) 后，会自动写入以下测试账号：
+
+- 管理员：`admin01 / Admin@123`
+- 调度员：`dispatch01 / Dispatch@123`
+- 师生用户：`student01 / Student@123`
+
 ## 后续可扩展方向
 
 - 接入真实定位数据与地图组件

@@ -85,6 +85,11 @@ export async function createRouteStop(payload) {
   return data.data;
 }
 
+export async function updateRouteStopPosition(payload) {
+  const { data } = await http.patch('/route-stops/position', payload);
+  return data.data;
+}
+
 export async function fetchVehicles() {
   const { data } = await http.get('/vehicles');
   return data.data;
@@ -182,5 +187,35 @@ export async function createImportJob(payload) {
 
 export async function fetchDatasetExport(dataset) {
   const { data } = await http.get(`/data-exports/${dataset}`);
+  return data.data;
+}
+
+export async function fetchDrivers() {
+  const { data } = await http.get('/drivers');
+  return data.data;
+}
+
+export async function createDriver(payload) {
+  const { data } = await http.post('/drivers', payload);
+  return data.data;
+}
+
+export async function updateDriver(id, payload) {
+  const { data } = await http.patch(`/drivers/${id}`, payload);
+  return data.data;
+}
+
+export async function fetchScheduleVersions() {
+  const { data } = await http.get('/schedule-versions');
+  return data.data;
+}
+
+export async function saveScheduleVersion(payload) {
+  const { data } = await http.post('/schedule-versions', payload);
+  return data.data;
+}
+
+export async function rollbackScheduleVersion(id, payload) {
+  const { data } = await http.post(`/schedule-versions/${id}/rollback`, payload);
   return data.data;
 }
