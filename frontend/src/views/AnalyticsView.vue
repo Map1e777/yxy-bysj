@@ -70,6 +70,28 @@
         <template #header>
           <div class="panel-head">
             <div>
+              <h3>排班适配准确率</h3>
+              <p>有客流需求的（线路,时段）组合中，已有发布班次覆盖的比例</p>
+            </div>
+          </div>
+        </template>
+        <div class="accuracy-display">
+          <span class="accuracy-value" :class="analytics.scheduleAccuracy >= 90 ? 'good' : 'warn'">
+            {{ analytics.scheduleAccuracy !== null ? analytics.scheduleAccuracy + '%' : '—' }}
+          </span>
+          <span class="accuracy-label">
+            {{ analytics.scheduleAccuracy === null ? '暂无客流数据' : analytics.scheduleAccuracy >= 90 ? '已达标（目标 ≥ 90%）' : '未达标（目标 ≥ 90%）' }}
+          </span>
+        </div>
+        <p class="accuracy-formula">
+          计算公式：排班适配准确率 = 已覆盖需求时段数 ÷ 总需求时段数 × 100%
+        </p>
+      </el-card>
+
+      <el-card shadow="never" class="panel-card">
+        <template #header>
+          <div class="panel-head">
+            <div>
               <h3>空驶率分析</h3>
               <p>预计满载率 &lt; 35% 的班次视为轻载/空驶，用于识别冗余班次</p>
             </div>
@@ -101,6 +123,35 @@
         </el-table>
       </el-card>
     </div>
+    <el-card v-if="analytics.baselineComparison" shadow="never" class="panel-card">
+      <template #header>
+        <div class="panel-head">
+          <div>
+            <h3>人工基线 vs GA+PSO 优化对比</h3>
+            <p>人工基线为固定30分钟间隔方案（7:00–18:00），优化方案为当前已发布班次实测数据</p>
+          </div>
+        </div>
+      </template>
+      <el-table
+        :data="[analytics.baselineComparison.baseline, analytics.baselineComparison.optimized]"
+        border
+      >
+        <el-table-column prop="label" label="方案" min-width="160" />
+        <el-table-column prop="totalServices" label="总班次数" width="110" />
+        <el-table-column prop="avgOccupancy" label="平均满载率(%)" width="130" />
+        <el-table-column prop="avgWaitMinutes" label="平均等待(分钟)" width="140" />
+        <el-table-column prop="emptyRunRate" label="空驶率(%)" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.emptyRunRate > 30 ? 'danger' : 'success'">{{ row.emptyRunRate }}%</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="peakCoverage" label="需求覆盖率(%)" width="130">
+          <template #default="{ row }">
+            <el-tag :type="row.peakCoverage >= 90 ? 'success' : 'warning'">{{ row.peakCoverage }}%</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </section>
 </template>
 
@@ -113,7 +164,9 @@ const analytics = reactive({
   routeMetrics: [],
   occupancy: [],
   eventsBySeverity: [],
-  emptyRunStats: []
+  emptyRunStats: [],
+  scheduleAccuracy: null,
+  baselineComparison: null
 });
 
 const routeMetricsChartOption = computed(() => ({
@@ -212,7 +265,40 @@ async function loadData() {
   analytics.occupancy = data.occupancy;
   analytics.eventsBySeverity = data.eventsBySeverity;
   analytics.emptyRunStats = data.emptyRunStats || [];
+  analytics.scheduleAccuracy = data.scheduleAccuracy ?? null;
+  analytics.baselineComparison = data.baselineComparison ?? null;
 }
 
 onMounted(loadData);
 </script>
+
+<style scoped>
+.accuracy-display {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 24px 0 12px;
+}
+
+.accuracy-value {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.accuracy-value.good { color: #10b981; }
+.accuracy-value.warn { color: #f59e0b; }
+
+.accuracy-label {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+.accuracy-formula {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+</style>
