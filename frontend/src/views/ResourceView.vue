@@ -181,116 +181,7 @@
         </div>
       </el-tab-pane>
 
-      <el-tab-pane label="驾驶员管理">
-        <div class="dashboard-grid">
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>新增驾驶员</h3><p>维护驾驶员基本信息与每日最大工时约束</p></div></div></template>
-            <el-form label-position="top">
-              <div class="form-2col">
-                <el-form-item label="姓名"><el-input v-model="driverForm.name" /></el-form-item>
-                <el-form-item label="手机号"><el-input v-model="driverForm.phone" /></el-form-item>
-                <el-form-item label="驾照号"><el-input v-model="driverForm.licenseNumber" /></el-form-item>
-                <el-form-item label="每日最大工时(h)"><el-input-number v-model="driverForm.maxDailyHours" :min="1" :max="12" :step="0.5" /></el-form-item>
-                <el-form-item label="状态"><el-select v-model="driverForm.status"><el-option label="在职" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select></el-form-item>
-              </div>
-              <el-button type="primary" @click="handleCreateDriver">新增驾驶员</el-button>
-            </el-form>
-          </el-card>
-
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>编辑驾驶员</h3><p>修改状态或工时上限</p></div></div></template>
-            <el-form label-position="top">
-              <el-form-item label="选择驾驶员">
-                <el-select v-model="editDriverId" placeholder="请选择">
-                  <el-option v-for="d in drivers" :key="d.id" :label="d.name" :value="d.id" />
-                </el-select>
-              </el-form-item>
-              <div class="form-2col">
-                <el-form-item label="状态"><el-select v-model="editDriverForm.status"><el-option label="在职" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select></el-form-item>
-                <el-form-item label="每日最大工时(h)"><el-input-number v-model="editDriverForm.maxDailyHours" :min="1" :max="12" :step="0.5" /></el-form-item>
-              </div>
-              <el-button @click="handleUpdateDriver">保存修改</el-button>
-            </el-form>
-          </el-card>
-        </div>
-
-        <el-card shadow="never" class="panel-card compact-top">
-          <template #header><div class="panel-head"><div><h3>驾驶员列表</h3></div></div></template>
-          <el-table :data="drivers" stripe>
-            <el-table-column prop="name" label="姓名" width="110" />
-            <el-table-column prop="phone" label="手机号" min-width="140" />
-            <el-table-column prop="license_number" label="驾照号" min-width="140" />
-            <el-table-column prop="max_daily_hours" label="最大工时(h)" width="120" />
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">{{ row.status === 'ACTIVE' ? '在职' : '停用' }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="创建时间" min-width="180">
-              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-tab-pane>
-
-      <el-tab-pane v-if="isAdmin" label="用户与导入导出">
-        <div class="dashboard-grid">
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>系统用户</h3><p>维护管理员、调度员和师生账号</p></div></div></template>
-            <el-form label-position="top">
-              <div class="form-2col">
-                <el-form-item label="用户名"><el-input v-model="userForm.username" /></el-form-item>
-                <el-form-item label="角色"><el-select v-model="userForm.role"><el-option label="管理员" value="ADMIN" /><el-option label="调度员" value="DISPATCHER" /><el-option label="师生" value="STUDENT" /></el-select></el-form-item>
-                <el-form-item label="手机号"><el-input v-model="userForm.phone" /></el-form-item>
-                <el-form-item label="状态"><el-select v-model="userForm.status"><el-option label="启用" value="ACTIVE" /><el-option label="停用" value="INACTIVE" /></el-select></el-form-item>
-              </div>
-              <el-button type="primary" @click="handleCreateUser">新增用户</el-button>
-            </el-form>
-          </el-card>
-
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>批量导入</h3><p>支持 CSV 文本导入模拟数据</p></div></div></template>
-            <el-form label-position="top">
-              <el-form-item label="导入类型"><el-select v-model="importForm.importType"><el-option label="客流数据" value="PASSENGER_FLOW" /><el-option label="道路状态" value="ROAD_CONDITION" /></el-select></el-form-item>
-              <el-form-item label="来源名称"><el-input v-model="importForm.sourceName" /></el-form-item>
-              <el-form-item label="CSV 内容"><el-input v-model="importForm.csvText" type="textarea" :rows="8" placeholder="route_name,date_key,time_slot,passenger_count,station_hotspot,is_simulated" /></el-form-item>
-              <div class="toolbar-row">
-                <el-button @click="handleImport">执行导入</el-button>
-                <el-button type="success" @click="handleExport('passenger_flows')">导出客流数据</el-button>
-                <el-button type="success" @click="handleExport('road_conditions')">导出道路数据</el-button>
-              </div>
-              <el-input v-model="exportPreview" type="textarea" :rows="6" readonly />
-            </el-form>
-          </el-card>
-        </div>
-
-        <div class="dashboard-grid compact-top">
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>用户列表</h3></div></div></template>
-            <el-table :data="users" stripe>
-              <el-table-column prop="username" label="用户名" min-width="120" />
-              <el-table-column prop="role" label="角色" width="120" />
-              <el-table-column prop="phone" label="手机号" min-width="140" />
-              <el-table-column prop="status" label="状态" width="100" />
-            </el-table>
-          </el-card>
-
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>导入任务</h3></div></div></template>
-            <el-table :data="importJobs" stripe>
-              <el-table-column prop="import_type" label="类型" width="140" />
-              <el-table-column prop="source_name" label="来源" min-width="160" />
-              <el-table-column prop="total_rows" label="行数" width="90" />
-              <el-table-column prop="status" label="状态" width="90" />
-              <el-table-column label="时间" min-width="180">
-                <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
-              </el-table-column>
-            </el-table>
-          </el-card>
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane v-if="isAdmin" label="系统参数与反馈">
+      <el-tab-pane v-if="isAdmin" label="系统参数">
         <div class="dashboard-grid">
           <el-card shadow="never" class="panel-card">
             <template #header><div class="panel-head"><div><h3>系统参数</h3><p>用于算法与通知策略调节</p></div></div></template>
@@ -304,18 +195,6 @@
             </el-form>
           </el-card>
 
-          <el-card shadow="never" class="panel-card">
-            <template #header><div class="panel-head"><div><h3>用户反馈</h3><p>便于调度人员跟踪需求和问题</p></div></div></template>
-            <el-table :data="feedbacks" stripe>
-              <el-table-column prop="user_name" label="用户" width="110" />
-              <el-table-column prop="route_name" label="线路" min-width="180" />
-              <el-table-column prop="content" label="反馈内容" min-width="220" show-overflow-tooltip />
-              <el-table-column prop="status" label="状态" width="110" />
-              <el-table-column label="时间" min-width="180">
-                <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
-              </el-table-column>
-            </el-table>
-          </el-card>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -327,28 +206,19 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import StopMapEditor from '../components/StopMapEditor.vue';
 import {
-  createDriver,
-  createImportJob,
   createNotification,
   createPassengerFlow,
   createRoadCondition,
   createRoute,
   createRouteStop,
-  createUser,
   createVehicle,
   fetchConfigs,
-  fetchDatasetExport,
-  fetchDrivers,
-  fetchFeedback,
-  fetchImportJobs,
   fetchNotifications,
   fetchPassengerFlows,
   fetchRoadConditions,
   fetchRoutes,
-  fetchUsers,
   fetchVehicles,
-  updateConfigs,
-  updateDriver
+  updateConfigs
 } from '../api/dashboard';
 import { useAuthStore } from '../stores/auth';
 
@@ -356,26 +226,11 @@ const auth = useAuthStore();
 const isAdmin = computed(() => auth.state.user?.role === 'ADMIN');
 
 const routes = ref([]);
-const drivers = ref([]);
 const vehicles = ref([]);
 const notifications = ref([]);
 const configs = ref([]);
-const feedbacks = ref([]);
 const roadConditions = ref([]);
 const passengerFlows = ref([]);
-const users = ref([]);
-const importJobs = ref([]);
-const exportPreview = ref('');
-
-const driverForm = reactive({
-  name: '',
-  phone: '',
-  licenseNumber: '',
-  maxDailyHours: 8.0,
-  status: 'ACTIVE'
-});
-const editDriverId = ref(null);
-const editDriverForm = reactive({ status: 'ACTIVE', maxDailyHours: 8.0 });
 
 const routeForm = reactive({
   routeName: '',
@@ -427,45 +282,20 @@ const roadForm = reactive({
   notes: ''
 });
 
-const userForm = reactive({
-  username: '',
-  role: 'DISPATCHER',
-  phone: '',
-  status: 'ACTIVE'
-});
-
-const importForm = reactive({
-  importType: 'PASSENGER_FLOW',
-  sourceName: 'manual-csv',
-  csvText: ''
-});
-
 function formatTime(value) {
   return new Date(value).toLocaleString('zh-CN');
 }
 
-function toCsv(rows) {
-  if (!rows.length) return '';
-  const headers = Object.keys(rows[0]);
-  return [headers.join(','), ...rows.map((row) => headers.map((key) => row[key]).join(','))].join('\n');
-}
-
 async function loadData() {
   routes.value = await fetchRoutes();
-  drivers.value = await fetchDrivers();
   vehicles.value = await fetchVehicles();
   notifications.value = await fetchNotifications();
   roadConditions.value = await fetchRoadConditions();
   passengerFlows.value = await fetchPassengerFlows();
-  importJobs.value = await fetchImportJobs();
   if (isAdmin.value) {
     configs.value = await fetchConfigs();
-    feedbacks.value = await fetchFeedback();
-    users.value = await fetchUsers();
   } else {
     configs.value = [];
-    feedbacks.value = [];
-    users.value = [];
   }
 }
 
@@ -546,44 +376,6 @@ async function handleCreateRoadCondition() {
   });
   await loadData();
   ElMessage.success('道路状态已新增');
-}
-
-async function handleCreateUser() {
-  await createUser({ ...userForm });
-  Object.assign(userForm, {
-    username: '',
-    role: 'DISPATCHER',
-    phone: '',
-    status: 'ACTIVE'
-  });
-  await loadData();
-  ElMessage.success('用户已新增');
-}
-
-async function handleImport() {
-  await createImportJob({ ...importForm });
-  await loadData();
-  ElMessage.success('导入任务已完成');
-}
-
-async function handleExport(dataset) {
-  const rows = await fetchDatasetExport(dataset);
-  exportPreview.value = toCsv(rows);
-  ElMessage.success('导出数据已生成到预览框');
-}
-
-async function handleCreateDriver() {
-  await createDriver({ ...driverForm });
-  Object.assign(driverForm, { name: '', phone: '', licenseNumber: '', maxDailyHours: 8.0, status: 'ACTIVE' });
-  drivers.value = await fetchDrivers();
-  ElMessage.success('驾驶员已新增');
-}
-
-async function handleUpdateDriver() {
-  if (!editDriverId.value) { ElMessage.warning('请先选择驾驶员'); return; }
-  await updateDriver(editDriverId.value, { ...editDriverForm });
-  drivers.value = await fetchDrivers();
-  ElMessage.success('驾驶员信息已更新');
 }
 
 async function handleSaveConfigs() {
