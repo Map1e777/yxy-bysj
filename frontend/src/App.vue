@@ -24,7 +24,6 @@
 
       <div class="sidebar-foot">
         <span>{{ auth.state.user?.username }} · {{ auth.state.user?.role }}</span>
-        <strong>Vue 3 + Element Plus + ECharts</strong>
         <el-button plain class="logout-button" @click="handleLogout">退出登录</el-button>
       </div>
     </aside>
