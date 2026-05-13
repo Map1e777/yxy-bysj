@@ -3,7 +3,6 @@ USE campus_shuttle;
 
 DROP TABLE IF EXISTS schedule_operation_logs;
 DROP TABLE IF EXISTS schedule_versions;
-DROP TABLE IF EXISTS data_import_jobs;
 DROP TABLE IF EXISTS passenger_flows;
 DROP TABLE IF EXISTS road_conditions;
 DROP TABLE IF EXISTS system_users;
@@ -12,11 +11,8 @@ DROP TABLE IF EXISTS route_stops;
 DROP TABLE IF EXISTS routes;
 DROP TABLE IF EXISTS route_metrics;
 DROP TABLE IF EXISTS vehicles;
-DROP TABLE IF EXISTS drivers;
 DROP TABLE IF EXISTS dispatch_events;
 DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS feedback;
-DROP TABLE IF EXISTS favorites;
 DROP TABLE IF EXISTS system_configs;
 
 CREATE TABLE routes (
@@ -106,21 +102,6 @@ CREATE TABLE notifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE feedback (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  user_name VARCHAR(50) NOT NULL,
-  route_name VARCHAR(100) NOT NULL,
-  content VARCHAR(255) NOT NULL,
-  status ENUM('NEW', 'FOLLOWING', 'DONE') NOT NULL DEFAULT 'NEW',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE favorites (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  user_name VARCHAR(50) NOT NULL,
-  route_name VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 CREATE TABLE system_configs (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -161,15 +142,6 @@ CREATE TABLE system_users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE drivers (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(50) NOT NULL,
-  phone VARCHAR(20) NOT NULL DEFAULT '',
-  license_number VARCHAR(50) NOT NULL DEFAULT '',
-  max_daily_hours DECIMAL(4,1) NOT NULL DEFAULT 8.0,
-  status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 CREATE TABLE schedule_versions (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -181,14 +153,6 @@ CREATE TABLE schedule_versions (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE data_import_jobs (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  import_type VARCHAR(50) NOT NULL,
-  source_name VARCHAR(100) NOT NULL,
-  total_rows INT NOT NULL DEFAULT 0,
-  status ENUM('DONE', 'FAILED') NOT NULL DEFAULT 'DONE',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 INSERT INTO routes (route_name, start_stop, end_stop, total_distance_km, estimated_duration_min, status) VALUES
 ('宿舍区A - 教学楼B', '宿舍区A', '教学楼B', 3.8, 15, 'ACTIVE'),
@@ -242,13 +206,6 @@ INSERT INTO notifications (title, content, type, target_role, is_read) VALUES
 ('图书馆线路拥挤提醒', '08:00-08:20 为高峰时段，建议错峰乘车。', '预警', 'STUDENT', 0),
 ('施工绕行通知', '宿舍区A - 教学楼B 临时调整停靠顺序。', '公告', 'ALL', 1);
 
-INSERT INTO feedback (user_name, route_name, content, status) VALUES
-('张同学', '宿舍区A - 图书馆', '希望晚自习结束后增加返程班次。', 'NEW'),
-('李老师', '宿舍区A - 教学楼B', '早高峰到站信息较准，建议保留当前频率。', 'DONE');
-
-INSERT INTO favorites (user_name, route_name) VALUES
-('张同学', '宿舍区A - 图书馆'),
-('李老师', '宿舍区A - 教学楼B');
 
 INSERT INTO system_configs (config_key, config_label, config_value) VALUES
 ('eta_tolerance', '到站预测误差阈值（分钟）', '2'),
@@ -278,13 +235,3 @@ INSERT INTO system_users (username, password_hash, role, phone, status) VALUES
 ('dispatch01', 'ae23a94c3a4bc2ba07322bfb722ac068524d1ec8997640ce9aa5c6065b8170c7', 'DISPATCHER', '13800002222', 'ACTIVE'),
 ('student01', 'b2a1f4fd0a460606b34c8913e2981dac8d2e283d778aba586c416ee2629bfa54', 'STUDENT', '13800003333', 'ACTIVE');
 
-INSERT INTO data_import_jobs (import_type, source_name, total_rows, status) VALUES
-('PASSENGER_FLOW', 'mock-passenger-flow.csv', 8, 'DONE'),
-('ROAD_CONDITION', 'manual-road-input', 3, 'DONE');
-
-INSERT INTO drivers (name, phone, license_number, max_daily_hours, status) VALUES
-('李师傅', '13900001111', 'CQ2022001', 8.0, 'ACTIVE'),
-('陈师傅', '13900002222', 'CQ2022002', 8.0, 'ACTIVE'),
-('王师傅', '13900003333', 'CQ2022003', 8.0, 'ACTIVE'),
-('赵师傅', '13900004444', 'CQ2022004', 7.5, 'ACTIVE'),
-('孙师傅', '13900005555', 'CQ2022005', 8.0, 'ACTIVE');

@@ -1,6 +1,5 @@
 import { query } from '../config/db.js';
 import { refreshRouteMetrics } from './scheduleService.js';
-import { hashPassword } from '../utils/auth.js';
 
 function mergeRoutesWithStops(routes, stops) {
   return routes.map((route) => ({
@@ -17,23 +16,6 @@ function mergeRoutesWithStops(routes, stops) {
   }));
 }
 
-function parseCsv(csvText) {
-  const lines = String(csvText || '')
-    .trim()
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map((item) => item.trim());
-  return lines.slice(1).map((line) => {
-    const cells = line.split(',').map((item) => item.trim());
-    return headers.reduce((acc, header, index) => {
-      acc[header] = cells[index] ?? '';
-      return acc;
-    }, {});
-  });
-}
 
 const STOP_COORDINATES = {
   '宿舍区A': { lat: 29.53512, lng: 106.59928 },
@@ -194,49 +176,6 @@ export async function createNotification(payload) {
   };
 }
 
-export async function listFeedback() {
-  return query(
-    `SELECT id, user_name, route_name, content, status, created_at
-    FROM feedback
-    ORDER BY created_at DESC`
-  );
-}
-
-export async function createFeedback(payload) {
-  const { userName, routeName, content, status = 'NEW' } = payload;
-  const result = await query(
-    `INSERT INTO feedback (user_name, route_name, content, status)
-    VALUES (?, ?, ?, ?)`,
-    [userName, routeName, content, status]
-  );
-
-  return {
-    id: result.insertId,
-    ...payload
-  };
-}
-
-export async function listFavorites() {
-  return query(
-    `SELECT id, user_name, route_name, created_at
-    FROM favorites
-    ORDER BY created_at DESC`
-  );
-}
-
-export async function createFavorite(payload) {
-  const { userName, routeName } = payload;
-  const result = await query(
-    `INSERT INTO favorites (user_name, route_name)
-    VALUES (?, ?)`,
-    [userName, routeName]
-  );
-
-  return {
-    id: result.insertId,
-    ...payload
-  };
-}
 
 export async function listRoadConditions() {
   return query(
@@ -292,161 +231,9 @@ export async function createPassengerFlow(payload) {
   return { id: result.insertId, ...payload };
 }
 
-export async function listDrivers() {
-  return query(
-    `SELECT id, name, phone, license_number, max_daily_hours, status, created_at
-    FROM drivers
-    ORDER BY id ASC`
-  );
-}
-
-export async function createDriver(payload) {
-  const { name, phone = '', licenseNumber = '', maxDailyHours = 8.0, status = 'ACTIVE' } = payload;
-  const result = await query(
-    `INSERT INTO drivers (name, phone, license_number, max_daily_hours, status) VALUES (?, ?, ?, ?, ?)`,
-    [name, phone, licenseNumber, maxDailyHours, status]
-  );
-  return { id: result.insertId, ...payload };
-}
-
-export async function updateDriver(driverId, payload) {
-  const [current] = await query(`SELECT * FROM drivers WHERE id = ?`, [driverId]);
-  if (!current) throw new Error('Driver not found');
-  const next = {
-    name:          payload.name          ?? current.name,
-    phone:         payload.phone         ?? current.phone,
-    licenseNumber: payload.licenseNumber ?? current.license_number,
-    maxDailyHours: payload.maxDailyHours ?? current.max_daily_hours,
-    status:        payload.status        ?? current.status
-  };
-  await query(
-    `UPDATE drivers SET name=?, phone=?, license_number=?, max_daily_hours=?, status=? WHERE id=?`,
-    [next.name, next.phone, next.licenseNumber, next.maxDailyHours, next.status, driverId]
-  );
-  return { id: driverId, ...next };
-}
-
-export async function listUsers() {
-  return query(
-    `SELECT id, username, role, phone, status, created_at
-    FROM system_users
-    ORDER BY id ASC`
-  );
-}
-
-export async function createUser(payload) {
-  const { username, password = 'ChangeMe123', role, phone = '', status = 'ACTIVE' } = payload;
-  const result = await query(
-    `INSERT INTO system_users (username, password_hash, role, phone, status)
-    VALUES (?, ?, ?, ?, ?)`,
-    [username, hashPassword(password), role, phone, status]
-  );
-  return { id: result.insertId, ...payload };
-}
-
-export async function createImportJob(payload) {
-  const { importType, sourceName = 'manual', csvText = '' } = payload;
-  const rows = parseCsv(csvText);
-  let inserted = 0;
-
-  if (importType === 'PASSENGER_FLOW') {
-    for (const row of rows) {
-      await query(
-        `INSERT INTO passenger_flows
-        (route_name, date_key, time_slot, passenger_count, station_hotspot, is_simulated)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          row.route_name,
-          row.date_key,
-          row.time_slot,
-          Number(row.passenger_count || 0),
-          row.station_hotspot,
-          Number(row.is_simulated || 1)
-        ]
-      );
-      inserted += 1;
-    }
-    await refreshRouteMetrics();
-  }
-
-  if (importType === 'ROAD_CONDITION') {
-    for (const row of rows) {
-      await query(
-        `INSERT INTO road_conditions
-        (road_name, affected_route, status, impact_level, delay_minutes, notes)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          row.road_name,
-          row.affected_route,
-          row.status || 'OPEN',
-          row.impact_level || 'LOW',
-          Number(row.delay_minutes || 0),
-          row.notes || ''
-        ]
-      );
-      inserted += 1;
-    }
-  }
-
-  const result = await query(
-    `INSERT INTO data_import_jobs (import_type, source_name, total_rows, status)
-    VALUES (?, ?, ?, ?)`,
-    [importType, sourceName, inserted, 'DONE']
-  );
-
-  return {
-    id: result.insertId,
-    importType,
-    sourceName,
-    totalRows: inserted,
-    status: 'DONE'
-  };
-}
-
-export async function listImportJobs() {
-  return query(
-    `SELECT id, import_type, source_name, total_rows, status, created_at
-    FROM data_import_jobs
-    ORDER BY created_at DESC`
-  );
-}
-
-export async function exportDataset(dataset) {
-  if (dataset === 'passenger_flows') {
-    const rows = await listPassengerFlows();
-    return rows.map((item) => ({
-      route_name: item.route_name,
-      date_key: item.date_key,
-      time_slot: item.time_slot,
-      passenger_count: item.passenger_count,
-      station_hotspot: item.station_hotspot
-    }));
-  }
-
-  if (dataset === 'road_conditions') {
-    const rows = await listRoadConditions();
-    return rows.map((item) => ({
-      road_name: item.road_name,
-      affected_route: item.affected_route,
-      status: item.status,
-      impact_level: item.impact_level,
-      delay_minutes: item.delay_minutes
-    }));
-  }
-
-  throw new Error('Unsupported dataset export');
-}
 
 export async function getStudentOverview(user) {
   const routes = await listRoutesWithStops();
-  const favorites = await query(
-    `SELECT user_name, route_name, created_at
-    FROM favorites
-    WHERE user_name = ?
-    ORDER BY created_at DESC
-    LIMIT 5`,
-    [user.username]
-  );
   const notifications = await query(
     `SELECT title, content, type, target_role, created_at
     FROM notifications
@@ -461,21 +248,11 @@ export async function getStudentOverview(user) {
     ORDER BY avg_wait_minutes ASC
     LIMIT 3`
   );
-  const feedbackHistory = await query(
-    `SELECT route_name, content, status, created_at
-    FROM feedback
-    WHERE user_name = ?
-    ORDER BY created_at DESC
-    LIMIT 5`,
-    [user.username]
-  );
 
   return {
     routes,
-    favorites,
     notifications,
-    recommendations,
-    feedbackHistory
+    recommendations
   };
 }
 

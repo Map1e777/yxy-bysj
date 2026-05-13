@@ -20,12 +20,7 @@ import {
   postDispatchRollback
 } from '../controllers/dispatchController.js';
 import {
-  getDatasetExport,
   getAnalytics,
-  getDrivers,
-  getFavorites,
-  getFeedback,
-  getImportJobs,
   getNotifications,
   getPassengerFlows,
   getRealtimeVehicleFeed,
@@ -33,20 +28,13 @@ import {
   getRoutes,
   getStudentPortal,
   getSystemConfigs,
-  getUsers,
   getVehicles,
-  patchDriver,
   patchRouteStopPosition,
-  postDriver,
-  postImportJob,
-  postFavorite,
-  postFeedback,
   postNotification,
   postPassengerFlow,
   postRoadCondition,
   postRoute,
   postRouteStop,
-  postUser,
   postVehicle,
   putSystemConfigs
 } from '../controllers/portalController.js';
@@ -81,19 +69,10 @@ router.get('/vehicles', requireAuth, getVehicles);
 router.post('/vehicles', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postVehicle);
 router.get('/notifications', requireAuth, getNotifications);
 router.post('/notifications', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postNotification);
-router.get('/feedback', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getFeedback);
-router.post('/feedback', requireAuth, postFeedback);
-router.get('/favorites', requireAuth, getFavorites);
-router.post('/favorites', requireAuth, postFavorite);
 router.get('/road-conditions', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getRoadConditions);
 router.post('/road-conditions', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postRoadCondition);
 router.get('/passenger-flows', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getPassengerFlows);
 router.post('/passenger-flows', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postPassengerFlow);
-router.get('/users', requireAuth, requireRoles('ADMIN'), getUsers);
-router.post('/users', requireAuth, requireRoles('ADMIN'), postUser);
-router.get('/data-imports', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getImportJobs);
-router.post('/data-imports', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postImportJob);
-router.get('/data-exports/:dataset', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getDatasetExport);
 router.get('/student/overview', requireAuth, getStudentPortal);
 router.get('/vehicles/realtime', requireAuth, getRealtimeVehicleFeed);
 router.get('/analytics', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getAnalytics);
@@ -104,8 +83,5 @@ router.get('/schedule-versions', requireAuth, requireRoles('ADMIN', 'DISPATCHER'
 router.post('/schedule-versions', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postScheduleVersion);
 router.post('/schedule-versions/:id/rollback', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postScheduleVersionRollback);
 
-router.get('/drivers', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), getDrivers);
-router.post('/drivers', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), postDriver);
-router.patch('/drivers/:id', requireAuth, requireRoles('ADMIN', 'DISPATCHER'), patchDriver);
 
 export default router;

@@ -110,25 +110,6 @@ export async function createNotification(payload) {
   return data.data;
 }
 
-export async function fetchFeedback() {
-  const { data } = await http.get('/feedback');
-  return data.data;
-}
-
-export async function createFeedback(payload) {
-  const { data } = await http.post('/feedback', payload);
-  return data.data;
-}
-
-export async function fetchFavorites() {
-  const { data } = await http.get('/favorites');
-  return data.data;
-}
-
-export async function createFavorite(payload) {
-  const { data } = await http.post('/favorites', payload);
-  return data.data;
-}
 
 export async function fetchAnalytics() {
   const { data } = await http.get('/analytics');
@@ -165,45 +146,6 @@ export async function createPassengerFlow(payload) {
   return data.data;
 }
 
-export async function fetchUsers() {
-  const { data } = await http.get('/users');
-  return data.data;
-}
-
-export async function createUser(payload) {
-  const { data } = await http.post('/users', payload);
-  return data.data;
-}
-
-export async function fetchImportJobs() {
-  const { data } = await http.get('/data-imports');
-  return data.data;
-}
-
-export async function createImportJob(payload) {
-  const { data } = await http.post('/data-imports', payload);
-  return data.data;
-}
-
-export async function fetchDatasetExport(dataset) {
-  const { data } = await http.get(`/data-exports/${dataset}`);
-  return data.data;
-}
-
-export async function fetchDrivers() {
-  const { data } = await http.get('/drivers');
-  return data.data;
-}
-
-export async function createDriver(payload) {
-  const { data } = await http.post('/drivers', payload);
-  return data.data;
-}
-
-export async function updateDriver(id, payload) {
-  const { data } = await http.patch(`/drivers/${id}`, payload);
-  return data.data;
-}
 
 export async function fetchScheduleVersions() {
   const { data } = await http.get('/schedule-versions');

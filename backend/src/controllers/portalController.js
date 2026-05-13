@@ -1,32 +1,20 @@
 import {
-  createDriver,
-  createFavorite,
-  createFeedback,
-  createImportJob,
   createNotification,
   createPassengerFlow,
   createRoadCondition,
   createRoute,
   createRouteStop,
-  createUser,
   createVehicle,
-  exportDataset,
   getAnalyticsData,
   getRealtimeVehicles,
   getStudentOverview,
   listConfigs,
-  listDrivers,
-  listFavorites,
-  listFeedback,
-  listImportJobs,
   listNotifications,
   listPassengerFlows,
   listRoadConditions,
   listRoutesWithStops,
-  listUsers,
   listVehicles,
   updateConfigs,
-  updateDriver,
   updateStopPosition
 } from '../services/portalService.js';
 
@@ -103,47 +91,6 @@ export async function postNotification(req, res, next) {
   }
 }
 
-export async function getFeedback(req, res, next) {
-  try {
-    const data = await listFeedback();
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function postFeedback(req, res, next) {
-  try {
-    const data = await createFeedback({
-      ...req.body,
-      userName: req.user.username
-    });
-    res.status(201).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getFavorites(req, res, next) {
-  try {
-    const data = await listFavorites();
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function postFavorite(req, res, next) {
-  try {
-    const data = await createFavorite({
-      ...req.body,
-      userName: req.user.username
-    });
-    res.status(201).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
 
 export async function getStudentPortal(req, res, next) {
   try {
@@ -226,74 +173,3 @@ export async function postPassengerFlow(req, res, next) {
   }
 }
 
-export async function getUsers(req, res, next) {
-  try {
-    const data = await listUsers();
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function postUser(req, res, next) {
-  try {
-    const data = await createUser(req.body);
-    res.status(201).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getImportJobs(req, res, next) {
-  try {
-    const data = await listImportJobs();
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function postImportJob(req, res, next) {
-  try {
-    const data = await createImportJob(req.body);
-    res.status(201).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getDatasetExport(req, res, next) {
-  try {
-    const data = await exportDataset(req.params.dataset);
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getDrivers(req, res, next) {
-  try {
-    const data = await listDrivers();
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function postDriver(req, res, next) {
-  try {
-    const data = await createDriver(req.body);
-    res.status(201).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function patchDriver(req, res, next) {
-  try {
-    const data = await updateDriver(req.params.id, req.body);
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}

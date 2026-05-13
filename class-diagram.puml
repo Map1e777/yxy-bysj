@@ -1,0 +1,446 @@
+@startuml 校园通勤班车智能排班系统类图
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+title 校园通勤班车智能排班系统 - 类图
+
+' ============================================================
+' 实体类（对应数据库表）
+' ============================================================
+package "实体类 (Entity)" {
+
+  class Route {
+    - id: int
+    - routeName: string
+    - startStop: string
+    - endStop: string
+    - totalDistanceKm: decimal
+    - estimatedDurationMin: int
+    - status: enum(ACTIVE, INACTIVE)
+  }
+
+  class RouteStop {
+    - id: int
+    - routeId: int
+    - stopName: string
+    - stopOrder: int
+    - lat: decimal
+    - lng: decimal
+  }
+
+  class Schedule {
+    - id: int
+    - routeName: string
+    - departureTime: time
+    - arrivalTime: time
+    - busCode: string
+    - status: enum(DRAFT, PUBLISHED, CANCELLED)
+    - expectedOccupancy: int
+    - notes: string
+    - createdAt: timestamp
+  }
+
+  class ScheduleOperationLog {
+    - id: int
+    - scheduleId: int
+    - routeName: string
+    - actionType: string
+    - operatorName: string
+    - actionDetail: string
+    - createdAt: timestamp
+  }
+
+  class ScheduleVersion {
+    - id: int
+    - versionLabel: string
+    - triggeredBy: enum(GENERATE, PUBLISH, MANUAL)
+    - operatorName: string
+    - scheduleSnapshot: text
+    - scheduleCount: int
+    - createdAt: timestamp
+  }
+
+  class Vehicle {
+    - id: int
+    - plateNumber: string
+    - driverName: string
+    - routeName: string
+    - nextStop: string
+    - etaMinutes: int
+    - occupancyLevel: string
+  }
+
+
+  class DispatchEvent {
+    - id: int
+    - eventType: string
+    - impactRoute: string
+    - severity: enum(LOW, MEDIUM, HIGH)
+    - status: enum(OPEN, PROCESSING, RESOLVED)
+    - suggestion: string
+    - resolutionType: string
+    - resolutionPayload: text
+    - actionNotes: string
+    - handledBy: string
+    - handledAt: timestamp
+    - originalScheduleSnapshot: text
+    - latestScheduleSnapshot: text
+    - affectedCount: int
+    - notificationId: int
+    - createdAt: timestamp
+  }
+
+  class Notification {
+    - id: int
+    - title: string
+    - content: string
+    - type: string
+    - targetRole: string
+    - isRead: boolean
+    - createdAt: timestamp
+  }
+
+  class PassengerFlow {
+    - id: int
+    - routeName: string
+    - dateKey: date
+    - timeSlot: string
+    - passengerCount: int
+    - stationHotspot: string
+    - isSimulated: boolean
+    - createdAt: timestamp
+  }
+
+  class RoadCondition {
+    - id: int
+    - roadName: string
+    - affectedRoute: string
+    - status: enum(OPEN, LIMITED, CLOSED)
+    - impactLevel: enum(LOW, MEDIUM, HIGH)
+    - delayMinutes: int
+    - notes: string
+    - createdAt: timestamp
+  }
+
+  class SystemUser {
+    - id: int
+    - username: string
+    - passwordHash: string
+    - role: enum(ADMIN, DISPATCHER, STUDENT)
+    - phone: string
+    - status: enum(ACTIVE, INACTIVE)
+    - createdAt: timestamp
+  }
+
+  class RouteMetrics {
+    - id: int
+    - routeName: string
+    - peakPassengerFlow: int
+    - avgWaitMinutes: decimal
+  }
+
+  class SystemConfig {
+    - id: int
+    - configKey: string
+    - configLabel: string
+    - configValue: string
+  }
+
+}
+
+' ============================================================
+' 实体关系
+' ============================================================
+Route "1" --> "*" RouteStop : 包含
+Route "1" --> "*" Schedule : 安排
+Route "1" --> "*" Vehicle : 分配
+Route "1" --> "*" PassengerFlow : 客流记录
+Route "1" --> "*" RoadCondition : 道路状态
+Route "1" --> "*" RouteMetrics : 运营指标
+Schedule "1" --> "*" ScheduleOperationLog : 操作日志
+Schedule "*" --> "1" ScheduleVersion : 版本存档
+DispatchEvent "1" --> "0..1" Notification : 触发通知
+
+' ============================================================
+' 控制器类（Controller）
+' ============================================================
+package "控制器层 (Controller)" {
+
+  class AuthController {
+    + postLogin(req, res, next): void
+    + getMe(req, res, next): void
+  }
+
+  class ScheduleController {
+    + getSchedules(req, res, next): void
+    + postSchedule(req, res, next): void
+    + patchSchedule(req, res, next): void
+    + postGeneratedSchedules(req, res, next): void
+    + patchScheduleBatchStatus(req, res, next): void
+    + getScheduleLogs(req, res, next): void
+    + getScheduleOptimizationReport(req, res, next): void
+    + getScheduleVersions(req, res, next): void
+    + postScheduleVersion(req, res, next): void
+    + postScheduleVersionRollback(req, res, next): void
+  }
+
+  class DispatchController {
+    + getDispatchEvents(req, res, next): void
+    + postDispatchEvent(req, res, next): void
+    + postDispatchExecution(req, res, next): void
+    + postDispatchRollback(req, res, next): void
+  }
+
+  class PortalController {
+    + getRoutes(req, res, next): void
+    + postRoute(req, res, next): void
+    + postRouteStop(req, res, next): void
+    + patchRouteStopPosition(req, res, next): void
+    + getVehicles(req, res, next): void
+    + postVehicle(req, res, next): void
+    + getNotifications(req, res, next): void
+    + postNotification(req, res, next): void
+    + getStudentPortal(req, res, next): void
+    + getRealtimeVehicleFeed(req, res, next): void
+    + getAnalytics(req, res, next): void
+    + getSystemConfigs(req, res, next): void
+    + putSystemConfigs(req, res, next): void
+    + getRoadConditions(req, res, next): void
+    + postRoadCondition(req, res, next): void
+    + getPassengerFlows(req, res, next): void
+    + postPassengerFlow(req, res, next): void
+  }
+
+  class DashboardController {
+    + getDashboard(req, res, next): void
+  }
+}
+
+' ============================================================
+' 服务类（Service）
+' ============================================================
+package "服务层 (Service)" {
+
+  class AuthService {
+    + loginUser(payload): Promise<{token, user}>
+    + getCurrentUser(userId): Promise<User>
+  }
+
+  class ScheduleService {
+    - VEHICLE_CAPACITY: int = 45
+    - GA_POPULATION_SIZE: int = 20
+    - GA_GENERATIONS: int = 30
+    - GA_MUTATION_RATE: float = 0.15
+    - PSO_PARTICLES: int = 5
+    - PSO_ITERATIONS: int = 10
+    - PSO_INERTIA: float = 0.6
+    - PSO_C1: float = 1.4
+    - PSO_C2: float = 1.4
+    + listSchedules(): Promise<Schedule[]>
+    + createSchedule(payload): Promise<Schedule>
+    + updateSchedule(id, payload): Promise<Schedule>
+    + batchUpdateScheduleStatus(payload): Promise<Schedule[]>
+    + generateSuggestedSchedules(): Promise<{schedules, report}>
+    + listScheduleLogs(): Promise<ScheduleOperationLog[]>
+    + getLatestScheduleOptimizationReport(): Promise<Report>
+    + saveScheduleVersion(label, triggeredBy, operator): Promise<ScheduleVersion>
+    + listScheduleVersions(): Promise<ScheduleVersion[]>
+    + rollbackToScheduleVersion(id, operator): Promise<{message, count}>
+    + refreshRouteMetrics(): Promise<void>
+    - loadOptimizationContext(): Promise<Context>
+    - buildGeneMap(context): GeneEntry[]
+    - buildPlanFromChromosome(chromosome, context, geneMap): Plan
+    - scorePlan(schedules, breakdown, weights): Metrics
+    - runGA(context, geneMap): {bestChromosome, fitnesses}
+    - runPSO(gaChromosome, context, geneMap): int[]
+    - buildGAPSOReport(psoChromosome, gaChromosome, context, geneMap): Report
+    - persistGeneratedSchedules(plan): Promise<void>
+    - logScheduleAction(id, route, action, detail, operator): Promise<void>
+  }
+
+  class DispatchService {
+    + listDispatchEvents(): Promise<DispatchEvent[]>
+    + createDispatchEvent(payload): Promise<DispatchEvent>
+    + executeDispatchEvent(eventId, payload): Promise<{message, notificationId}>
+    + rollbackDispatchEvent(eventId, operator): Promise<{message, notificationId}>
+    - listAffectedSchedules(routeName): Promise<Schedule[]>
+    - createLinkedNotification(title, content, role): Promise<int>
+    - serializeSnapshot(rows): string
+    - parseSnapshot(raw): object[]
+  }
+
+  class PortalService {
+    + listRoutesWithStops(): Promise<Route[]>
+    + createRoute(payload): Promise<Route>
+    + createRouteStop(payload): Promise<RouteStop>
+    + updateStopPosition(stopName, lat, lng): Promise<void>
+    + listVehicles(): Promise<Vehicle[]>
+    + createVehicle(payload): Promise<Vehicle>
+    + listNotifications(): Promise<Notification[]>
+    + createNotification(payload): Promise<Notification>
+    + listRoadConditions(): Promise<RoadCondition[]>
+    + createRoadCondition(payload): Promise<RoadCondition>
+    + listPassengerFlows(): Promise<PassengerFlow[]>
+    + createPassengerFlow(payload): Promise<PassengerFlow>
+    + listConfigs(): Promise<SystemConfig[]>
+    + updateConfigs(payload): Promise<SystemConfig[]>
+    + getStudentOverview(user): Promise<PortalData>
+    + getRealtimeVehicles(user): Promise<VehicleFeed[]>
+    + getAnalyticsData(): Promise<AnalyticsData>
+  }
+
+  class DashboardService {
+    + getDashboardData(): Promise<DashboardData>
+  }
+}
+
+' ============================================================
+' 中间件与工具类
+' ============================================================
+package "中间件与工具 (Middleware & Utils)" {
+
+  class AuthMiddleware {
+    + requireAuth(req, res, next): void
+    + requireRoles(...roles): Function
+  }
+
+  class ErrorHandler {
+    + errorHandler(err, req, res, next): void
+  }
+
+  class AuthUtils {
+    + hashPassword(password): string
+    + signToken(payload): string
+    + verifyToken(token): object
+  }
+
+  class Database {
+    - pool: mysql2.Pool
+    + query(sql, params): Promise<any[]>
+  }
+}
+
+' ============================================================
+' 前端视图类
+' ============================================================
+package "前端视图层 (Vue Views)" {
+
+  class LoginView {
+    - form: {username, password}
+    + handleLogin(): void
+  }
+
+  class DashboardView {
+    - dashboard: {metrics, routeHotspots, runningVehicles}
+    + loadData(): void
+  }
+
+  class ScheduleView {
+    - schedules: Schedule[]
+    - logs: ScheduleOperationLog[]
+    - optimizationReport: Report
+    - form: ScheduleForm
+    - selectedIds: int[]
+    + handleGenerate(): void
+    + handleSubmit(): void
+    + handleBatchStatus(status): void
+    + startEdit(row): void
+  }
+
+  class DispatchView {
+    - events: DispatchEvent[]
+    - form: EventForm
+    - resolutionForm: ResolutionForm
+    + handleCreate(): void
+    + handleExecute(): void
+    + handleRollback(): void
+  }
+
+  class ResourceView {
+    - routes: Route[]
+    - vehicles: Vehicle[]
+    - notifications: Notification[]
+    - passengerFlows: PassengerFlow[]
+    - roadConditions: RoadCondition[]
+    - configs: SystemConfig[]
+    + handleCreateRoute(): void
+    + handleCreateStop(): void
+    + handleCreateVehicle(): void
+    + handleCreateNotification(): void
+    + handleCreatePassengerFlow(): void
+    + handleCreateRoadCondition(): void
+    + handleSaveConfigs(): void
+  }
+
+  class PassengerView {
+    - portal: {routes, notifications, recommendations}
+    - realtimeVehicles: VehicleFeed[]
+    - schedules: Schedule[]
+    + loadData(): void
+    + loadRealtimeVehicles(): void
+  }
+
+  class AnalyticsView {
+    - analytics: AnalyticsData
+    + loadData(): void
+  }
+}
+
+' ============================================================
+' 前端状态与路由
+' ============================================================
+package "前端基础设施 (Frontend Infra)" {
+
+  class AuthStore {
+    - state: {token, user}
+    + login(username, password): void
+    + logout(): void
+  }
+
+  class Router {
+    - routes: RouteConfig[]
+    + beforeEach(guard): void
+  }
+
+  class HttpClient {
+    - baseURL: string
+    + get(url): Promise
+    + post(url, data): Promise
+    + patch(url, data): Promise
+    + put(url, data): Promise
+  }
+}
+
+' ============================================================
+' 调用关系
+' ============================================================
+AuthController --> AuthService
+ScheduleController --> ScheduleService
+DispatchController --> DispatchService
+PortalController --> PortalService
+DashboardController --> DashboardService
+
+AuthService --> Database
+ScheduleService --> Database
+DispatchService --> Database
+PortalService --> Database
+DashboardService --> Database
+
+AuthService --> AuthUtils
+AuthMiddleware --> AuthUtils
+
+LoginView --> AuthStore
+LoginView --> HttpClient
+DashboardView --> HttpClient
+ScheduleView --> HttpClient
+DispatchView --> HttpClient
+ResourceView --> HttpClient
+PassengerView --> HttpClient
+AnalyticsView --> HttpClient
+
+AuthStore --> HttpClient
+Router --> AuthStore
+
+@enduml
