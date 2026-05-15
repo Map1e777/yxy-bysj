@@ -5,94 +5,63 @@
 ```mermaid
 graph TB
     subgraph 用户层
-        A[师生用户<br>浏览器]
-        B[调度管理员<br>浏览器]
-        C[系统管理员<br>浏览器]
+        direction LR
+        A[师生用户]
+        B[调度管理员]
+        C[系统管理员]
     end
 
-    subgraph 前端展示层["前端展示层 (Vue 3 + Element Plus)"]
-        D[登录模块<br>LoginView]
-        E[师生门户<br>PassengerView]
-        F[运行概览<br>DashboardView]
-        G[班次管理<br>ScheduleView]
-        H[调度事件<br>DispatchView]
-        I[基础资源<br>ResourceView]
-        J[统计分析<br>AnalyticsView]
+    subgraph 前端展示层["前端展示层 (Vue 3 + Element Plus + ECharts)"]
+        direction LR
+        E[师生门户<br/>PassengerView]
+        F[运行概览<br/>DashboardView]
+        G[班次管理<br/>ScheduleView]
+        H[调度事件<br/>DispatchView]
+        I[基础资源<br/>ResourceView]
+        J[统计分析<br/>AnalyticsView]
     end
 
-    subgraph 接口层["接口层 (RESTful API)"]
-        K[Axios HTTP 客户端]
-        L[JWT 鉴权中间件]
+    subgraph 前端工程层["前端工程支撑 (Vite)"]
+        direction LR
+        K1[Vue Router<br/>角色路由守卫]
+        K2[Pinia Store<br/>认证状态]
+        K3[Axios<br/>Token注入/拦截]
+    end
+
+    subgraph 服务端["服务端 (Node.js + Express)"]
+        direction LR
+        L[JWT认证中间件]
         M[角色权限中间件]
     end
 
-    subgraph 业务逻辑层["业务逻辑层 (Node.js + Express)"]
-        N[认证服务<br>authService]
-        O[排班服务<br>scheduleService]
-        P[调度服务<br>dispatchService]
-        Q[门户服务<br>portalService]
-        R[仪表盘服务<br>dashboardService]
+    subgraph 业务逻辑层["业务服务层"]
+        direction LR
+        N[认证服务]
+        O[排班服务]
+        P[调度服务]
+        Q[门户服务]
+        R[仪表盘服务]
     end
 
-    subgraph 算法层["智能算法层"]
-        S[遗传算法 GA<br>全局搜索]
-        T[粒子群优化 PSO<br>局部精化]
-        U[适应度评估<br>多目标加权]
+    subgraph 算法层["智能排班引擎 (GA+PSO)"]
+        direction LR
+        S[遗传算法GA<br/>种群20/迭代30代]
+        T[粒子群PSO<br/>5粒子/迭代10次]
+        U[适应度函数<br/>四目标加权]
     end
 
     subgraph 数据层["数据持久层 (MySQL)"]
-        V[(路线/站点表)]
-        W[(班次/版本表)]
-        X[(车辆表)]
-        Y[(客流/道路表)]
-        Z[(用户/通知/反馈表)]
+        direction LR
+        DB[(campus_shuttle<br/>路线/班次/车辆/客流/用户)]
     end
 
-    A --> E
-    B --> F
-    B --> G
-    B --> H
-    B --> I
-    B --> J
-    C --> F
-    C --> G
-    C --> H
-    C --> I
-    C --> J
-    A --> D
-    B --> D
-    C --> D
-
-    E --> K
-    F --> K
-    G --> K
-    H --> K
-    I --> K
-    J --> K
-    K --> L --> M
-
-    M --> N
-    M --> O
-    M --> P
-    M --> Q
-    M --> R
-
-    O --> S --> T --> U
-    U --> O
-
-    N --> V
-    N --> Z
-    O --> W
-    O --> V
-    P --> W
-    P --> Z
-    Q --> V
-    Q --> X
-    Q --> Y
-    Q --> Z
-    R --> V
-    R --> X
-    R --> Y
+    用户层 --> 前端展示层
+    前端展示层 --- 前端工程层
+    前端工程层 -->|HTTP/JSON| 服务端
+    服务端 --> 业务逻辑层
+    业务逻辑层 --> 算法层
+    业务逻辑层 <--> 数据层
+    算法层 --> 数据层
 ```
 
 ## 2. 用例图
