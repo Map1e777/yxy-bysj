@@ -200,20 +200,21 @@ const routeMetricsChartOption = computed(() => ({
 }));
 
 const occupancyChartOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
+  tooltip: { trigger: 'axis', formatter: '{b}: {c} 个班次' },
   color: ['#f59e0b'],
   grid: { left: 40, right: 20, top: 30, bottom: 40, containLabel: true },
   xAxis: {
     type: 'category',
-    data: analytics.occupancy.map((item) => item.route_name),
-    axisLabel: { interval: 0, rotate: 16 }
+    name: '满载率区间',
+    data: analytics.occupancy.map((item) => item.bucket),
+    axisLabel: { interval: 0 }
   },
-  yAxis: { type: 'value', max: 100, name: '%' },
+  yAxis: { type: 'value', name: '班次数', minInterval: 1 },
   series: [
     {
       type: 'bar',
-      data: analytics.occupancy.map((item) => item.expected_occupancy),
-      barWidth: 30,
+      data: analytics.occupancy.map((item) => item.shift_count),
+      barWidth: 36,
       itemStyle: { borderRadius: [8, 8, 0, 0] }
     }
   ]

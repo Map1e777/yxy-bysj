@@ -329,11 +329,23 @@ export async function getAnalyticsData() {
     ORDER BY peak_passenger_flow DESC`
   );
 
-  const occupancy = await query(
-    `SELECT route_name, expected_occupancy, status
+  const occupancyBuckets = await query(
+    `SELECT
+      CASE
+        WHEN expected_occupancy < 40 THEN '0-40%'
+        WHEN expected_occupancy < 60 THEN '40-60%'
+        WHEN expected_occupancy < 80 THEN '60-80%'
+        WHEN expected_occupancy < 95 THEN '80-95%'
+        ELSE '95-100%'
+      END AS bucket,
+      COUNT(*) AS shift_count
     FROM schedules
-    ORDER BY expected_occupancy DESC`
+    WHERE status != 'CANCELLED'
+    GROUP BY bucket`
   );
+  const bucketOrder = ['0-40%', '40-60%', '60-80%', '80-95%', '95-100%'];
+  const bucketMap = new Map(occupancyBuckets.map((row) => [row.bucket, Number(row.shift_count) || 0]));
+  const occupancy = bucketOrder.map((bucket) => ({ bucket, shift_count: bucketMap.get(bucket) || 0 }));
 
   const eventsBySeverity = await query(
     `SELECT severity, COUNT(*) AS total
